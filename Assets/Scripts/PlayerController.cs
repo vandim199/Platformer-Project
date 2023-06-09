@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    public Collider2D leftCollider;
+    public Collider2D rightCollider;
     public float skewLimiter;
     public float deltaSpeed;
     [SerializeField]
@@ -77,8 +79,8 @@ public class PlayerController : MonoBehaviour
         targetX = _rb.velocity.y != 0 ? 0 : Mathf.Clamp(-_rb.velocity.x * 0.04f, -skewLimiter, skewLimiter);
         targetY = _rb.velocity.y == 0 ? 0 : Mathf.Clamp(_rb.velocity.x * 0.04f, -skewLimiter, skewLimiter);
         
-        targetY = Mathf.Abs(_rb.velocity.y * 0.04f);
-        targetX = Mathf.Abs(_rb.velocity.x * 0.04f) - targetY;
+        targetY = Mathf.Clamp(Mathf.Abs(_rb.velocity.y * 0.04f), 0, skewLimiter);
+        targetX = Mathf.Clamp(Mathf.Abs(_rb.velocity.x * 0.04f), 0, skewLimiter) - targetY;
 
         
         float currentX = Mathf.Lerp(gameObject.GetComponent<SpriteRenderer>().material.GetFloat("_xSkew"), targetX, Time.deltaTime * deltaSpeed);
@@ -126,7 +128,12 @@ public class PlayerController : MonoBehaviour
         
         RaycastHit2D hitLeft;
         hitLeft = Physics2D.Raycast(transform.position, moveDir.normalized, groundedLength, layerMask);
-        if (hitLeft.collider != null)
+        //if (hitLeft.collider != null)
+        if(leftCollider.IsTouchingLayers(layerMask) && moveDir.x < 0)
+        {
+            _rb.velocity = new Vector2(0, _rb.velocity.y);
+        }
+        if(rightCollider.IsTouchingLayers(layerMask) && moveDir.x > 0)
         {
             _rb.velocity = new Vector2(0, _rb.velocity.y);
         }
