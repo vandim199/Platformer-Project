@@ -2,9 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class PlayerController : MonoBehaviour
 {
+    public TMP_Text debugText;
+    public float coyoteTime;
     public Collider2D leftCollider;
     public Collider2D rightCollider;
     public float skewLimiter;
@@ -24,11 +27,12 @@ public class PlayerController : MonoBehaviour
     private bool _grounded = false;
     private bool _jumpBuffered = false;
 
-    private float timestamp = 999999999;
+    private float _coyoteTimer = 999999999;
+    private float _timestamp = 999999999;
 
-    private float targetX, targetY;
+    private float _targetX, _targetY;
 
-    private Vector2 moveDir;
+    private Vector2 _moveDir;
     // Start is called before the first frame update
     void Start()
     {
@@ -38,14 +42,25 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (_grounded)
+        {
+            _coyoteTimer = coyoteTime;
+            debugText.text = "jump ok";
+        }
+        else
+        {
+            _coyoteTimer -= Time.deltaTime;
+            if(_coyoteTimer <= 0) debugText.text = "no";
+        }
+        
         if (Input.GetAxisRaw("Horizontal") != 0)
         {
-           moveDir = new Vector2(Input.GetAxis("Horizontal") * runSpeed, _rb.velocity.y);
-           _rb.velocity = moveDir;
+           _moveDir = new Vector2(Input.GetAxis("Horizontal") * runSpeed, _rb.velocity.y);
+           _rb.velocity = _moveDir;
         }
         if (Input.GetButtonDown("Jump"))
         {
-            if(_grounded)
+            if(_coyoteTimer > 0)
             {
                 Jump();
             }
@@ -57,9 +72,13 @@ public class PlayerController : MonoBehaviour
             
         }
 
-        if (Input.GetButtonUp("Jump") && _rb.velocity.y > 0)
+        if (Input.GetButtonUp("Jump"))
         {
-            _rb.velocity = new Vector2(_rb.velocity.x, -jumpCurve.gravityOnRelease);
+            _coyoteTimer = 0;
+            if (_rb.velocity.y > 0)
+            {
+                _rb.velocity = new Vector2(_rb.velocity.x, -jumpCurve.gravityOnRelease);
+            }
         }
         
         ShearAndTear();
@@ -70,21 +89,21 @@ public class PlayerController : MonoBehaviour
         Vector2 vec = _rb.velocity;
         vec.y = jumpCurve.jumpForce;
         _rb.velocity = vec;
-        timestamp = Time.time;
+        _timestamp = Time.time;
         _jumpBuffered = false;
     }
 
     void ShearAndTear()
     {
-        targetX = _rb.velocity.y != 0 ? 0 : Mathf.Clamp(-_rb.velocity.x * 0.04f, -skewLimiter, skewLimiter);
-        targetY = _rb.velocity.y == 0 ? 0 : Mathf.Clamp(_rb.velocity.x * 0.04f, -skewLimiter, skewLimiter);
+        _targetX = _rb.velocity.y != 0 ? 0 : Mathf.Clamp(-_rb.velocity.x * 0.04f, -skewLimiter, skewLimiter);
+        _targetY = _rb.velocity.y == 0 ? 0 : Mathf.Clamp(_rb.velocity.x * 0.04f, -skewLimiter, skewLimiter);
         
-        targetY = Mathf.Clamp(Mathf.Abs(_rb.velocity.y * 0.04f), 0, skewLimiter);
-        targetX = Mathf.Clamp(Mathf.Abs(_rb.velocity.x * 0.04f), 0, skewLimiter) - targetY;
+        _targetY = Mathf.Clamp(Mathf.Abs(_rb.velocity.y * 0.04f), 0, skewLimiter);
+        _targetX = Mathf.Clamp(Mathf.Abs(_rb.velocity.x * 0.04f), 0, skewLimiter) - _targetY;
 
         
-        float currentX = Mathf.Lerp(gameObject.GetComponent<SpriteRenderer>().material.GetFloat("_xSkew"), targetX, Time.deltaTime * deltaSpeed);
-        float currentY = Mathf.Lerp(gameObject.GetComponent<SpriteRenderer>().material.GetFloat("_ySkew"), targetY, Time.deltaTime * deltaSpeed);
+        float currentX = Mathf.Lerp(gameObject.GetComponent<SpriteRenderer>().material.GetFloat("_xSkew"), _targetX, Time.deltaTime * deltaSpeed);
+        float currentY = Mathf.Lerp(gameObject.GetComponent<SpriteRenderer>().material.GetFloat("_ySkew"), _targetY, Time.deltaTime * deltaSpeed);
         
         gameObject.GetComponent<SpriteRenderer>().material.SetFloat("_xSkew", currentX);
         gameObject.GetComponent<SpriteRenderer>().material.SetFloat("_ySkew", currentY);
@@ -116,24 +135,24 @@ public class PlayerController : MonoBehaviour
             Vector2 vec = _rb.velocity;
             if (_rb.velocity.y > 0)
             {
-                vec.y -= jumpCurve.riseGravity.Evaluate(Time.time - timestamp);
+                vec.y -= jumpCurve.riseGravity.Evaluate(Time.time - _timestamp);
             }
             else if (_rb.velocity.y < 0)
             {
-                vec.y -= jumpCurve.fallGravity.Evaluate(Time.time - timestamp);
+                vec.y -= jumpCurve.fallGravity.Evaluate(Time.time - _timestamp);
             }
 
             _rb.velocity = vec;
         }
         
         RaycastHit2D hitLeft;
-        hitLeft = Physics2D.Raycast(transform.position, moveDir.normalized, groundedLength, layerMask);
+        hitLeft = Physics2D.Raycast(transform.position, _moveDir.normalized, groundedLength, layerMask);
         //if (hitLeft.collider != null)
-        if(leftCollider.IsTouchingLayers(layerMask) && moveDir.x < 0)
+        if(leftCollider.IsTouchingLayers(layerMask) && _moveDir.x < 0)
         {
             _rb.velocity = new Vector2(0, _rb.velocity.y);
         }
-        if(rightCollider.IsTouchingLayers(layerMask) && moveDir.x > 0)
+        if(rightCollider.IsTouchingLayers(layerMask) && _moveDir.x > 0)
         {
             _rb.velocity = new Vector2(0, _rb.velocity.y);
         }
