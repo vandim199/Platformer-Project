@@ -12,16 +12,15 @@ public class PlayerController : MonoBehaviour
     public Collider2D rightCollider;
     public float skewLimiter;
     public float deltaSpeed;
-    [SerializeField]
-    private JumpCurve jumpCurve;
-    [SerializeField]
-    private float runSpeed = 3;
-    [SerializeField]
-    private float jumpBufferTimer = 0.5f;
-    [SerializeField]
-    private float groundedLength = 2;
-    [SerializeField]
-    private LayerMask layerMask;
+    [SerializeField] private float acceleration;
+    [SerializeField] private float decceleration;
+    [SerializeField] private float velocityScale;
+    [SerializeField] private JumpCurve jumpCurve;
+    [SerializeField] private float runSpeed = 3;
+    [SerializeField] private float jumpBufferTimer = 0.5f;
+    [SerializeField] private float groundedLength = 2;
+    [SerializeField] private float floorFriction;
+    [SerializeField] private LayerMask layerMask;
     
     private Rigidbody2D _rb;
     private bool _grounded = false;
@@ -56,7 +55,7 @@ public class PlayerController : MonoBehaviour
         if (Input.GetAxisRaw("Horizontal") != 0)
         {
            _moveDir = new Vector2(Input.GetAxis("Horizontal") * runSpeed, _rb.velocity.y);
-           _rb.velocity = _moveDir;
+           //_rb.velocity = _moveDir;
         }
         if (Input.GetButtonDown("Jump"))
         {
@@ -67,7 +66,7 @@ public class PlayerController : MonoBehaviour
             else
             {
                 _jumpBuffered = true;
-                StartCoroutine(bufferTimeOut());
+                StartCoroutine(BufferTimeOut());
             }
             
         }
@@ -150,15 +149,40 @@ public class PlayerController : MonoBehaviour
         //if (hitLeft.collider != null)
         if(leftCollider.IsTouchingLayers(layerMask) && _moveDir.x < 0)
         {
-            _rb.velocity = new Vector2(0, _rb.velocity.y);
+            //_rb.velocity = new Vector2(0, _rb.velocity.y);
         }
         if(rightCollider.IsTouchingLayers(layerMask) && _moveDir.x > 0)
         {
-            _rb.velocity = new Vector2(0, _rb.velocity.y);
+            //_rb.velocity = new Vector2(0, _rb.velocity.y);
         }
+        
+        Run();
+        Friction();
     }
 
-    IEnumerator bufferTimeOut()
+    void Run()
+    {
+        float targetSpeed = runSpeed * Input.GetAxis("Horizontal");
+        float speedDiff = targetSpeed - _rb.velocity.x;
+        float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : decceleration;
+        float movement = Mathf.Pow(Mathf.Abs(speedDiff) * accelRate, velocityScale) * Mathf.Sign(speedDiff);
+        
+        _rb.AddForce(movement * Vector2.right);
+    }
+
+    void Friction()
+    {
+        if (_grounded && Mathf.Abs(Input.GetAxis("Horizontal")) < 0.05f)
+        {
+            Debug.Log(true);
+            float amount = Mathf.Min(Mathf.Abs(_rb.velocity.x), Mathf.Abs(floorFriction));
+            amount *= Mathf.Sign(_rb.velocity.x);
+            _rb.AddForce(Vector2.right * -amount, ForceMode2D.Impulse);
+        }
+        else Debug.Log(false);
+    }
+
+    IEnumerator BufferTimeOut()
     {
         yield return new WaitForSeconds(jumpBufferTimer);
         _jumpBuffered = false;
