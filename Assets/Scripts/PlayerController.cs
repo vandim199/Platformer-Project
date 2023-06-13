@@ -7,7 +7,7 @@ using TMPro;
 public class PlayerController : MonoBehaviour
 {
     public TMP_Text debugText;
-    public float coyoteTime;
+    public float coyoteTimeLength;
     public Collider2D leftCollider;
     public Collider2D rightCollider;
     public float skewLimiter;
@@ -24,8 +24,13 @@ public class PlayerController : MonoBehaviour
     
     private Rigidbody2D _rb;
     private bool _grounded = false;
-    private bool _jumpBuffered = false;
+    public bool GetIsGrounded
+    {
+        get { return _grounded;}
+        
+    }
 
+    private float _jumpBufferedTime = -100;
     private float _coyoteTimer = 999999999;
     private float _timestamp = 999999999;
 
@@ -43,7 +48,7 @@ public class PlayerController : MonoBehaviour
     {
         if (_grounded)
         {
-            _coyoteTimer = coyoteTime;
+            _coyoteTimer = coyoteTimeLength;
             debugText.text = "jump ok";
         }
         else
@@ -65,8 +70,7 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                _jumpBuffered = true;
-                StartCoroutine(BufferTimeOut());
+                _jumpBufferedTime = Time.time;
             }
             
         }
@@ -89,7 +93,7 @@ public class PlayerController : MonoBehaviour
         vec.y = jumpCurve.jumpForce;
         _rb.velocity = vec;
         _timestamp = Time.time;
-        _jumpBuffered = false;
+        _jumpBufferedTime = 0;
     }
 
     void ShearAndTear()
@@ -112,13 +116,13 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        RaycastHit2D hit;
-        hit = Physics2D.Raycast(transform.position, Vector2.down, groundedLength, layerMask);
-        if (hit.collider != null)
+        RaycastHit2D groundRaycast;
+        groundRaycast = Physics2D.Raycast(transform.position, Vector2.down, groundedLength, layerMask);
+        if (groundRaycast.collider != null)
         {
             Debug.DrawLine(transform.position, transform.position + Vector3.down * groundedLength, Color.green);
             _grounded = true;
-            if (_jumpBuffered)
+            if (_jumpBufferedTime + jumpBufferTimer > Time.time)
             {
                 Jump();
             }
@@ -144,9 +148,6 @@ public class PlayerController : MonoBehaviour
             _rb.velocity = vec;
         }
         
-        RaycastHit2D hitLeft;
-        hitLeft = Physics2D.Raycast(transform.position, _moveDir.normalized, groundedLength, layerMask);
-        //if (hitLeft.collider != null)
         if(leftCollider.IsTouchingLayers(layerMask) && _moveDir.x < 0)
         {
             //_rb.velocity = new Vector2(0, _rb.velocity.y);
@@ -172,7 +173,7 @@ public class PlayerController : MonoBehaviour
 
     void Friction()
     {
-        if (_grounded && Mathf.Abs(Input.GetAxis("Horizontal")) < 0.05f)
+        if (Mathf.Abs(Input.GetAxis("Horizontal")) < 0.05f)
         {
             Debug.Log(true);
             float amount = Mathf.Min(Mathf.Abs(_rb.velocity.x), Mathf.Abs(floorFriction));
@@ -185,6 +186,14 @@ public class PlayerController : MonoBehaviour
     IEnumerator BufferTimeOut()
     {
         yield return new WaitForSeconds(jumpBufferTimer);
-        _jumpBuffered = false;
+        _jumpBufferedTime = 0;
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.CompareTag("JumpPoint"))
+        {
+            _coyoteTimer = coyoteTimeLength;
+        }
     }
 }
