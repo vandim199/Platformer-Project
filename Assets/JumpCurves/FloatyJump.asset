@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 052b6b34ddb4f134b9599233fb35771a, type: 3}
   m_Name: FloatyJump
   m_EditorClassIdentifier: 
-  jumpForce: 16
+  jumpForce: 14
   riseGravity:
     serializedVersion: 2
     m_Curve:
@@ -28,11 +28,11 @@ MonoBehaviour:
     - serializedVersion: 3
       time: 1
       value: 1
-      inSlope: 0
-      outSlope: 0
+      inSlope: 1.1634346
+      outSlope: 1.1634346
       tangentMode: 0
       weightedMode: 0
-      inWeight: 0
+      inWeight: 0.23750001
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2

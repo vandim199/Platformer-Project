@@ -8,39 +8,48 @@ public class PlayerController : MonoBehaviour
 {
     public TMP_Text debugText;
     public float coyoteTimeLength;
-    public Collider2D leftCollider;
-    public Collider2D rightCollider;
     public float skewLimiter;
     public float deltaSpeed;
+    public JumpCurve[] curvesArray;
+    public TMP_Text text;
+    
     [SerializeField] private float acceleration;
     [SerializeField] private float decceleration;
     [SerializeField] private float velocityScale;
     [SerializeField] private JumpCurve jumpCurve;
     [SerializeField] private float runSpeed = 3;
+    [SerializeField] private float dashLength = 5;
     [SerializeField] private float jumpBufferTimer = 0.5f;
     [SerializeField] private float groundedLength = 2;
     [SerializeField] private float floorFriction;
     [SerializeField] private LayerMask layerMask;
-    
-    private Rigidbody2D _rb;
-    private bool _grounded = false;
+
     public bool GetIsGrounded
     {
         get { return _grounded;}
         
     }
-
+    
+    private int _curveNum = 0;
+    private Animator _anim;
+    private Rigidbody2D _rb;
+    private bool _grounded = false;
     private float _jumpBufferedTime = -100;
     private float _coyoteTimer = 999999999;
     private float _timestamp = 999999999;
-
     private float _targetX, _targetY;
-
     private Vector2 _moveDir;
     // Start is called before the first frame update
+
+    private void Awake()
+    {
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 120;
+    }
     void Start()
     {
         _rb = GetComponent<Rigidbody2D>();
+        _anim = gameObject.GetComponent<Animator>();
     }
 
     // Update is called once per frame
@@ -60,7 +69,6 @@ public class PlayerController : MonoBehaviour
         if (Input.GetAxisRaw("Horizontal") != 0)
         {
            _moveDir = new Vector2(Input.GetAxis("Horizontal") * runSpeed, _rb.velocity.y);
-           //_rb.velocity = _moveDir;
         }
         if (Input.GetButtonDown("Jump"))
         {
@@ -72,7 +80,6 @@ public class PlayerController : MonoBehaviour
             {
                 _jumpBufferedTime = Time.time;
             }
-            
         }
 
         if (Input.GetButtonUp("Jump"))
@@ -85,10 +92,19 @@ public class PlayerController : MonoBehaviour
         }
         
         ShearAndTear();
+        
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            _curveNum++;
+            _curveNum = (int)Mathf.Repeat(_curveNum, curvesArray.Length);
+            jumpCurve = curvesArray[_curveNum];
+            text.text = "T - Change jump feel\n" + jumpCurve.name;
+        }
     }
 
     void Jump()
     {
+        _anim.SetTrigger("Jump");
         Vector2 vec = _rb.velocity;
         vec.y = jumpCurve.jumpForce;
         _rb.velocity = vec;
@@ -110,8 +126,6 @@ public class PlayerController : MonoBehaviour
         
         gameObject.GetComponent<SpriteRenderer>().material.SetFloat("_xSkew", currentX);
         gameObject.GetComponent<SpriteRenderer>().material.SetFloat("_ySkew", currentY);
-        
-        
     }
 
     private void FixedUpdate()
@@ -148,14 +162,6 @@ public class PlayerController : MonoBehaviour
             _rb.velocity = vec;
         }
         
-        if(leftCollider.IsTouchingLayers(layerMask) && _moveDir.x < 0)
-        {
-            //_rb.velocity = new Vector2(0, _rb.velocity.y);
-        }
-        if(rightCollider.IsTouchingLayers(layerMask) && _moveDir.x > 0)
-        {
-            //_rb.velocity = new Vector2(0, _rb.velocity.y);
-        }
         
         Run();
         Friction();
@@ -168,6 +174,7 @@ public class PlayerController : MonoBehaviour
         float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : decceleration;
         float movement = Mathf.Pow(Mathf.Abs(speedDiff) * accelRate, velocityScale) * Mathf.Sign(speedDiff);
         
+        _anim.SetFloat("Speed", targetSpeed);
         _rb.AddForce(movement * Vector2.right);
     }
 
