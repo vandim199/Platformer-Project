@@ -27,7 +27,6 @@ public class PlayerController : MonoBehaviour
     public bool GetIsGrounded
     {
         get { return _grounded;}
-        
     }
     
     private int _curveNum = 0;
@@ -39,6 +38,8 @@ public class PlayerController : MonoBehaviour
     private float _timestamp = 999999999;
     private float _targetX, _targetY;
     private Vector2 _moveDir;
+    private bool _canDoubleJump;
+    private GameObject _lastJumpPoint;
     // Start is called before the first frame update
 
     private void Awake()
@@ -72,6 +73,14 @@ public class PlayerController : MonoBehaviour
         }
         if (Input.GetButtonDown("Jump"))
         {
+            if (_canDoubleJump)
+            {
+                _coyoteTimer = coyoteTimeLength;
+                _canDoubleJump = false;
+                ParticleSystem particle = _lastJumpPoint.GetComponentInChildren<ParticleSystem>();
+                particle.Clear();
+                particle.Play();
+            }
             if(_coyoteTimer > 0)
             {
                 Jump();
@@ -182,12 +191,10 @@ public class PlayerController : MonoBehaviour
     {
         if (Mathf.Abs(Input.GetAxis("Horizontal")) < 0.05f)
         {
-            Debug.Log(true);
             float amount = Mathf.Min(Mathf.Abs(_rb.velocity.x), Mathf.Abs(floorFriction));
             amount *= Mathf.Sign(_rb.velocity.x);
             _rb.AddForce(Vector2.right * -amount, ForceMode2D.Impulse);
         }
-        else Debug.Log(false);
     }
 
     IEnumerator BufferTimeOut()
@@ -196,11 +203,19 @@ public class PlayerController : MonoBehaviour
         _jumpBufferedTime = 0;
     }
 
-    private void OnTriggerStay(Collider other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("JumpPoint"))
         {
-            _coyoteTimer = coyoteTimeLength;
+            _canDoubleJump = true;
+            _lastJumpPoint = other.gameObject;
+        }
+    }
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("JumpPoint"))
+        {
+            _canDoubleJump = false;
         }
     }
 }

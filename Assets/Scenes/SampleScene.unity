@@ -7788,8 +7788,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   debugText: {fileID: 434361613}
   coyoteTimeLength: 0.15
-  leftCollider: {fileID: 1629207783}
-  rightCollider: {fileID: 1629207782}
   skewLimiter: 0.3
   deltaSpeed: 50
   curvesArray:
@@ -7923,7 +7921,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1648058779}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -0.3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
